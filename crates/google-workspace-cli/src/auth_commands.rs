@@ -345,6 +345,18 @@ fn token_cache_path() -> PathBuf {
     config_dir().join("token_cache.json")
 }
 
+fn clear_authorized_user_token_cache(config_dir: &Path) -> Result<Option<PathBuf>, GwsError> {
+    let token_cache = config_dir.join("token_cache.json");
+    match std::fs::remove_file(&token_cache) {
+        Ok(()) => Ok(Some(token_cache)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(GwsError::Validation(format!(
+            "Failed to remove stale token cache {}: {e}",
+            token_cache.display()
+        ))),
+    }
+}
+
 /// Which scope set to use for login.
 enum ScopeMode {
     /// Use the default scopes (MINIMAL_SCOPES).
@@ -643,6 +655,11 @@ async fn handle_login_inner(
     // Save encrypted credentials
     let enc_path = credential_store::save_encrypted(&creds_str)
         .map_err(|e| GwsError::Auth(format!("Failed to encrypt credentials: {e}")))?;
+
+    // A successful login replaces the authorized-user refresh token and may add
+    // scopes. Drop any access tokens cached for the previous credential so the
+    // next API call is forced to mint a token from the newly saved refresh token.
+    clear_authorized_user_token_cache(&config)?;
 
     let output = json!({
         "status": "success",
@@ -1898,6 +1915,27 @@ mod tests {
         let path = token_cache_path();
         assert!(path.ends_with("token_cache.json"));
         assert!(path.starts_with(config_dir()));
+    }
+
+    #[test]
+    fn clear_authorized_user_token_cache_removes_existing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = dir.path().join("token_cache.json");
+        std::fs::write(&cache, b"stale token cache").unwrap();
+
+        let removed = clear_authorized_user_token_cache(dir.path()).unwrap();
+
+        assert_eq!(removed, Some(cache.clone()));
+        assert!(!cache.exists());
+    }
+
+    #[test]
+    fn clear_authorized_user_token_cache_allows_missing_file() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let removed = clear_authorized_user_token_cache(dir.path()).unwrap();
+
+        assert_eq!(removed, None);
     }
 
     #[tokio::test]
