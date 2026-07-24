@@ -24,6 +24,14 @@ gws drive files list --params '{"pageSize": 5}'
 gws gmail users.messages list --params '{"maxResults": 3}'
 ```
 
+## Shell Completion
+
+```bash
+source <(gws completion bash)                         # bash
+gws completion zsh > ~/.zfunc/_gws                   # zsh
+gws completion fish > ~/.config/fish/completions/gws.fish
+```
+
 ## Documentation
 
 See the [full README](https://github.com/googleworkspace/cli#readme) for authentication setup, helper commands, agent skills, and more.

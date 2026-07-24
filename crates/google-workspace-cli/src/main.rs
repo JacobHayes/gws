@@ -23,6 +23,7 @@ mod auth;
 pub(crate) mod auth_commands;
 mod client;
 mod commands;
+mod completion;
 pub(crate) mod credential_store;
 mod discovery;
 mod error;
@@ -85,6 +86,17 @@ async fn run_with_args(args: Vec<String>) -> Result<(), GwsError> {
     if is_version_flag(&first_arg) {
         println!("gws {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
+    }
+
+    // Handle shell completion commands before service resolution.
+    if first_arg == "completion" {
+        let completion_args: Vec<String> = args.iter().skip(2).cloned().collect();
+        return completion::handle_completion_command(&completion_args);
+    }
+
+    if first_arg == "__complete" {
+        let completion_args: Vec<String> = args.iter().skip(2).cloned().collect();
+        return completion::handle_complete_command(&completion_args).await;
     }
 
     // Handle the `schema` command
@@ -419,6 +431,7 @@ fn print_usage() {
     println!("USAGE:");
     println!("    gws <service> <resource> [sub-resource] <method> [flags]");
     println!("    gws schema <service.resource.method> [--resolve-refs]");
+    println!("    gws completion <bash|zsh|fish>");
     println!();
     println!("EXAMPLES:");
     println!("    gws drive files list --params '{{\"pageSize\": 10}}'");
@@ -426,6 +439,7 @@ fn print_usage() {
     println!("    gws sheets spreadsheets get --params '{{\"spreadsheetId\": \"...\"}}'");
     println!("    gws gmail users messages list --params '{{\"userId\": \"me\"}}'");
     println!("    gws schema drive.files.list");
+    println!("    eval \"$(gws completion bash)\"");
     println!();
     println!("FLAGS:");
     println!("    --params <JSON>       URL/Query parameters as JSON");

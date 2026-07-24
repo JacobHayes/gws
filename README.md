@@ -22,6 +22,7 @@ Drive, Gmail, Calendar, and every Workspace API. Zero boilerplate. Structured JS
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Shell Completion](#shell-completion)
 - [Quick Start](#quick-start)
 - [Why gws?](#why-gws)
 - [Authentication](#authentication)
@@ -66,6 +67,23 @@ On macOS and Linux, you can also install via [Homebrew](https://brew.sh/):
 ```bash
 brew install googleworkspace-cli
 ```
+
+## Shell Completion
+
+Generate completions for your shell with `gws completion`:
+
+```bash
+# bash
+source <(gws completion bash)
+
+# zsh
+gws completion zsh > ~/.zfunc/_gws
+
+# fish
+gws completion fish > ~/.config/fish/completions/gws.fish
+```
+
+The npm installer also writes generated scripts to its local `bin/completions/` directory.
 
 ## Quick Start
 

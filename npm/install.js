@@ -71,6 +71,22 @@ function run(cmd, args) {
 }
 
 /**
+ * Run a command and return stdout.
+ */
+function runOutput(cmd, args) {
+  const result = spawnSync(cmd, args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
+  if (result.error) {
+    throw new Error(`Failed to run ${cmd}: ${result.error.message}`);
+  }
+  if ((result.status ?? 1) !== 0) {
+    throw new Error(
+      `Command failed: ${cmd} ${args.join(" ")}\n${result.stderr || ""}`,
+    );
+  }
+  return result.stdout;
+}
+
+/**
  * Extract the archive to the install directory.
  */
 function extract(archivePath, destDir) {
@@ -99,6 +115,25 @@ function extract(archivePath, destDir) {
   }
 }
 
+function installCompletions(binPath) {
+  const completionsDir = path.join(INSTALL_DIR, "completions");
+  mkdirSync(completionsDir, { recursive: true });
+
+  const outputs = {
+    bash: "gws.bash",
+    zsh: "_gws",
+    fish: "gws.fish",
+  };
+
+  for (const [shell, filename] of Object.entries(outputs)) {
+    const script = runOutput(binPath, ["completion", shell]);
+    fs.writeFileSync(path.join(completionsDir, filename), script);
+  }
+
+  console.error(`Shell completions written to ${completionsDir}`);
+  console.error("You can also eval them directly, e.g. eval \"$(gws completion bash)\".");
+}
+
 async function install() {
   const platform = getPlatform();
   const { version } = require("./package.json");
@@ -111,6 +146,7 @@ async function install() {
     const installed = fs.readFileSync(versionFile, "utf8").trim();
     if (installed === version) {
       console.error(`gws v${version} is already installed, skipping.`);
+      installCompletions(binPath);
       return;
     }
     console.error(`Upgrading gws from v${installed} to v${version}`);
@@ -155,6 +191,8 @@ async function install() {
     if (process.platform !== "win32") {
       fs.chmodSync(binPath, 0o755);
     }
+
+    installCompletions(binPath);
 
     console.error(`gws v${version} has been installed!`);
     fs.writeFileSync(versionFile, version);
