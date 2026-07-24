@@ -10,6 +10,10 @@
 > [!NOTE]
 > **Package Manager**: Use `pnpm` instead of `npm` for Node.js package management in this repository.
 
+## Repository Workflow
+
+This is a personal direct-to-main repository, not a PR-based project. Do not create PR branches or temporary remote bookmarks unless the user explicitly asks. Keep logically separate work in separate `jj` changes, then move `main` to the final intended tip and push `main` directly when asked to push. If a temporary bookmark/branch is created by mistake, delete it locally and from the remote.
+
 ## Build & Test
 
 > [!IMPORTANT]
@@ -23,7 +27,7 @@ cargo test           # Run tests
 
 ## Changesets
 
-Every PR must include a changeset file. Create one at `.changeset/<descriptive-name>.md`:
+For release-affecting changes, create a changeset file at `.changeset/<descriptive-name>.md`:
 
 ```markdown
 ---
@@ -33,7 +37,7 @@ Every PR must include a changeset file. Create one at `.changeset/<descriptive-n
 Brief description of the change
 ```
 
-Use `patch` for fixes/chores, `minor` for new features, `major` for breaking changes. The CI policy check will fail without a changeset.
+Use `patch` for fixes/chores, `minor` for new features, `major` for breaking changes. Pure agent-instruction or local workflow documentation changes can skip a changeset unless the user asks for one.
 
 ## Architecture
 
@@ -170,9 +174,9 @@ When adding a new helper or CLI command:
 5. **Resource names** (project IDs, space names, topic names) → Use `validate_resource_name()`
 6. **Write tests** for both the happy path AND the rejection path (e.g., pass `../../.ssh` and assert `Err`)
 
-## PR Labels
+## Issue Labels
 
-Use these labels to categorize pull requests and issues:
+Use these labels to categorize issues when needed:
 
 - `area: discovery` — Discovery document fetching, caching, parsing
 - `area: http` — Request execution, URL building, response handling
