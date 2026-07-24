@@ -60,44 +60,21 @@ async fn main() {
 }
 
 async fn run() -> Result<(), GwsError> {
-    let args: Vec<String> = std::env::args().collect();
+    run_with_args(std::env::args().collect()).await
+}
 
+async fn run_with_args(args: Vec<String>) -> Result<(), GwsError> {
     if args.len() < 2 {
         print_usage();
+        return Ok(());
+    }
+
+    let Some(first_arg) = first_command_arg(&args) else {
         return Err(GwsError::Validation(
             "No service specified. Usage: gws <service> <resource> [sub-resource] <method> [flags]"
                 .to_string(),
         ));
-    }
-
-    // Find the first non-flag arg (skip --api-version and its value)
-    let mut first_arg: Option<String> = None;
-    {
-        let mut skip_next = false;
-        for a in args.iter().skip(1) {
-            if skip_next {
-                skip_next = false;
-                continue;
-            }
-            if a == "--api-version" {
-                skip_next = true;
-                continue;
-            }
-            if a.starts_with("--api-version=") {
-                continue;
-            }
-            if !a.starts_with("--") || a.as_str() == "--help" || a.as_str() == "--version" {
-                first_arg = Some(a.clone());
-                break;
-            }
-        }
-    }
-    let first_arg = first_arg.ok_or_else(|| {
-        GwsError::Validation(
-            "No service specified. Usage: gws <service> <resource> [sub-resource] <method> [flags]"
-                .to_string(),
-        )
-    })?;
+    };
 
     // Handle --help and --version at top level
     if is_help_flag(&first_arg) {
@@ -509,6 +486,30 @@ fn print_usage() {
     println!("    Please search existing issues first; if one already exists, comment there.");
 }
 
+fn first_command_arg(args: &[String]) -> Option<String> {
+    // Find the first non-flag arg (skip --api-version and its value).
+    // Top-level help/version flags are treated as commands so they can be handled before
+    // Discovery fetching.
+    let mut skip_next = false;
+    for arg in args.iter().skip(1) {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if arg == "--api-version" {
+            skip_next = true;
+            continue;
+        }
+        if arg.starts_with("--api-version=") {
+            continue;
+        }
+        if !arg.starts_with("--") || is_help_flag(arg) || is_version_flag(arg) {
+            return Some(arg.clone());
+        }
+    }
+    None
+}
+
 fn is_help_flag(arg: &str) -> bool {
     matches!(arg, "--help" | "-h")
 }
@@ -614,6 +615,47 @@ mod tests {
         assert!(is_help_flag("-h"));
         assert!(!is_help_flag("help"));
         assert!(!is_help_flag("--h"));
+    }
+
+    #[test]
+    fn test_first_command_arg_none_for_bare_command() {
+        let args = vec!["gws".to_string()];
+        assert_eq!(first_command_arg(&args), None);
+    }
+
+    #[test]
+    fn test_first_command_arg_skips_api_version() {
+        let args = vec![
+            "gws".to_string(),
+            "--api-version".to_string(),
+            "v3".to_string(),
+            "drive".to_string(),
+        ];
+        assert_eq!(first_command_arg(&args).as_deref(), Some("drive"));
+    }
+
+    #[tokio::test]
+    async fn test_run_with_bare_command_prints_usage_without_error() {
+        let args = vec!["gws".to_string()];
+        assert!(run_with_args(args).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_run_with_unknown_top_level_option_returns_error() {
+        let args = vec!["gws".to_string(), "--bogus".to_string()];
+        assert!(matches!(
+            run_with_args(args).await,
+            Err(GwsError::Validation(message)) if message.contains("No service specified")
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_run_with_missing_api_version_value_returns_error() {
+        let args = vec!["gws".to_string(), "--api-version".to_string()];
+        assert!(matches!(
+            run_with_args(args).await,
+            Err(GwsError::Validation(message)) if message.contains("No service specified")
+        ));
     }
 
     #[test]
