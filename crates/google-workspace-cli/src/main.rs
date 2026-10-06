@@ -84,7 +84,7 @@ async fn run_with_args(args: Vec<String>) -> Result<(), GwsError> {
     }
 
     if is_version_flag(&first_arg) {
-        println!("gws {}", env!("CARGO_PKG_VERSION"));
+        println!("gws {}", env!("GWS_VERSION"));
         return Ok(());
     }
 
