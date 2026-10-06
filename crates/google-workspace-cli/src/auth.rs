@@ -137,6 +137,8 @@ enum Credential {
 ///
 /// Long-running helpers use this trait so they can request a fresh token before
 /// each API call instead of holding a single token string until it expires.
+// async_trait's expansion adds `#[must_use]` to the boxed future it returns.
+#[allow(clippy::double_must_use)]
 #[async_trait::async_trait]
 pub trait AccessTokenProvider: Send + Sync {
     async fn access_token(&self) -> anyhow::Result<String>;
