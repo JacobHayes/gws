@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@v5
       - uses: Swatinem/rust-cache@v2
       - run: mise run check
 
@@ -93,7 +93,7 @@ jobs:
       GWS_VERSION: ${{ needs.plan.outputs.publish == 'true' && needs.plan.outputs.tag || '' }}
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@v5
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
@@ -111,7 +111,7 @@ jobs:
           (cd dist && shasum -a 256 "gws-$TARGET.tar.gz" > "gws-$TARGET.tar.gz.sha256")
           # Every binary runs on its own runner: smoke-test it and show the baked-in version.
           "$staging/gws" --version
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gws-${{ matrix.target }}
           path: dist/*
@@ -130,7 +130,7 @@ jobs:
       TAG: ${{ needs.plan.outputs.tag }}
       SHA: ${{ github.sha }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
